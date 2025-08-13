@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin - Course Management System</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .glass-effect {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .gradient-bg {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    .shadow-elegant {
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      transition: all 0.3s ease;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+    }
+    .table-row:hover {
+      background: rgba(102, 126, 234, 0.05);
+      transform: translateY(-1px);
+      transition: all 0.2s ease;
+    }
+    .day-card {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      border-radius: 15px;
+      transition: all 0.3s ease;
+    }
+    .day-card:hover {
+      transform: scale(1.02);
+      box-shadow: 0 10px 30px rgba(240, 147, 251, 0.3);
+    }
+  </style>
+</head>
+
+<body class="min-h-screen gradient-bg">
+  <!-- Header -->
+  <div class="bg-white shadow-lg">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center py-6">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <h1 class="text-3xl font-bold text-gray-900">SmartLearn Admin</h1>
+          </div>
+        </div>
+        <div class="flex items-center space-x-4">
+          <span class="text-gray-600">Course Management System</span>
+          <div class="h-8 w-8 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <!-- Enrollment Management Section -->
+    <div class="glass-effect rounded-2xl p-6 mb-8 shadow-elegant">
+      <h2 class="text-2xl font-bold text-gray-800 mb-6">👥 Enrollments Overview</h2>
+      <button id="load-enrollments-btn" class="btn-primary text-white px-6 py-3 rounded-lg font-semibold hover:shadow-lg mb-4">Load Enrollments</button>
+      <div id="enrollments-table-container">
+        <!-- Table will be rendered here -->
+      </div>
+    </div>
+    <!-- Payment Requests Section -->
+    <div class="glass-effect rounded-2xl p-6 mb-8 shadow-elegant">
+      <h2 class="text-2xl font-bold text-gray-800 mb-6">💸 Payment Requests (Manual UPI)</h2>
+      <button id="load-payments-btn" class="btn-primary text-white px-6 py-3 rounded-lg font-semibold hover:shadow-lg mb-4">Load Payment Requests</button>
+      <div id="payments-table-container">
+        <!-- Payment requests will be rendered here -->
+      </div>
+    </div>
+    <!-- Course Search & Load Section -->
+    <div class="glass-effect rounded-2xl p-6 mb-8 shadow-elegant">
+      <h2 class="text-2xl font-bold text-gray-800 mb-4">🔍 Load Existing Course</h2>
+      <div class="flex gap-4 items-end">
+        <div class="flex-1">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Course ID or Title</label>
+          <input type="text" id="search-course-id" 
+                 class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all" 
+                 placeholder="Enter course ID or title to load existing course">
+        </div>
+        <button id="load-course-btn" class="btn-primary text-white px-6 py-3 rounded-lg font-semibold hover:shadow-lg">
+          Load Course
+        </button>
+      </div>
+    </div>
+
+    <!-- Course Basic Information -->
+    <div class="glass-effect rounded-2xl p-6 mb-8 shadow-elegant">
+      <h2 class="text-2xl font-bold text-gray-800 mb-6">📚 Course Information</h2>
+      <form id="course-form">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Course Title *</label>
+            <input type="text" id="course-title" required
+                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Instructor *</label>
+            <input type="text" id="course-instructor" required
+                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Description *</label>
+            <textarea id="course-description" required rows="3"
+                      class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"></textarea>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Course Image URL *</label>
+            <input type="url" id="course-image" required
+                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Category *</label>
+            <input type="text" id="course-category" required
+                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Level *</label>
+            <select id="course-level" required
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+              <option value="">Select Level</option>
+              <option value="Beginner">Beginner</option>
+              <option value="Intermediate">Intermediate</option>
+              <option value="Advanced">Advanced</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Duration *</label>
+            <input type="text" id="course-duration" required placeholder="e.g., 8 weeks"
+                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Price (0 for Free) *</label>
+            <input type="number" id="course-price" required min="0" step="0.01"
+                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Learning Objectives (comma separated)</label>
+            <input type="text" id="course-objectives" placeholder="Learn Python basics, Understand data structures, etc."
+                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+          </div>
+          <div class="flex items-center">
+            <input type="checkbox" id="course-featured" class="h-4 w-4 text-purple-600 rounded border-gray-300 focus:ring-2 focus:ring-purple-500">
+            <label for="course-featured" class="ml-2 text-sm font-medium text-gray-700">Featured Course</label>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <!-- Days Management Section -->
+    <div class="glass-effect rounded-2xl p-6 mb-8 shadow-elegant">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-gray-800">📅 Course Days Management</h2>
+        <button id="add-day-btn" class="btn-primary text-white px-6 py-3 rounded-lg font-semibold hover:shadow-lg">
+          + Add New Day
+        </button>
+      </div>
+      <div id="days-container" class="space-y-6">
+        <!-- Days will be rendered here -->
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="flex justify-center space-x-4">
+      <button type="button" id="save-course-btn" class="btn-primary text-white px-8 py-4 rounded-lg font-semibold text-lg hover:shadow-lg">
+        💾 Save Course
+      </button>
+      <button type="button" id="reset-form-btn" class="bg-gray-500 hover:bg-gray-600 text-white px-8 py-4 rounded-lg font-semibold text-lg">
+        🔄 Reset Form
+      </button>
+    </div>
+
+    <!-- Status Message -->
+    <div id="admin-message" class="mt-8 text-center"></div>
+  </div>
+
+  <script src="firebase.js"></script>
+  <script>
+    // --- Enrollment Management ---
+    const enrollBtn = document.getElementById('load-enrollments-btn');
+    const enrollContainer = document.getElementById('enrollments-table-container');
+    enrollBtn.disabled = true;
+    enrollBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+    // --- Payment Requests Management ---
+    const paymentsBtn = document.getElementById('load-payments-btn');
+    const paymentsContainer = document.getElementById('payments-table-container');
+    paymentsBtn.disabled = true;
+    paymentsBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+    function enableEnrollBtn() {
+      enrollBtn.disabled = false;
+      enrollBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+      paymentsBtn.disabled = false;
+      paymentsBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+    }
+
+    // Wait for Firebase to be ready
+    function checkFirebaseReadyAndEnableBtn() {
+      if (window.firebaseServicesInitialized && window.db) {
+        enableEnrollBtn();
+      } else {
+        setTimeout(checkFirebaseReadyAndEnableBtn, 300);
+      }
+    }
+    checkFirebaseReadyAndEnableBtn();
+
+    enrollBtn.onclick = loadEnrollments;
+
+    paymentsBtn.onclick = loadPaymentRequests;
+
+    async function loadEnrollments() {
+      enrollContainer.innerHTML = '<div class="text-gray-500">Loading enrollments...</div>';
+      try {
+        if (!window.firebaseServicesInitialized || !window.db) {
+          enrollContainer.innerHTML = '<div class="text-red-600">Firebase not ready.</div>';
+          return;
+        }
+        // Fetch all enrollments
+        const enrollSnap = await window.db().collection('enrollments').get();
+        const enrollments = enrollSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        if (enrollments.length === 0) {
+          enrollContainer.innerHTML = '<div class="text-gray-500">No enrollments found.</div>';
+          return;
+        }
+        // Fetch all courses for mapping
+        const courseSnap = await window.db().collection('courses').get();
+        const courses = {};
+        courseSnap.docs.forEach(doc => { courses[doc.id] = doc.data(); });
+
+        // Render table
+        let html = `<div class="overflow-x-auto"><table class="min-w-full bg-white rounded-lg shadow">
+          <thead><tr>
+            <th class="px-4 py-2 border-b">User Name</th>
+            <th class="px-4 py-2 border-b">User Email</th>
+            <th class="px-4 py-2 border-b">Course</th>
+            <th class="px-4 py-2 border-b">Progress</th>
+            <th class="px-4 py-2 border-b">Completed</th>
+            <th class="px-4 py-2 border-b">Enrolled At</th>
+          </tr></thead><tbody>`;
+        enrollments.forEach(e => {
+          const course = courses[e.courseId] || {};
+          html += `<tr class="table-row">
+            <td class="px-4 py-2 border-b">${e.userName || '-'}</td>
+            <td class="px-4 py-2 border-b">${e.userEmail || '-'}</td>
+            <td class="px-4 py-2 border-b font-semibold">${course.title || e.courseId || '-'}</td>
+            <td class="px-4 py-2 border-b">${e.progress != null ? e.progress + '%' : '-'}</td>
+            <td class="px-4 py-2 border-b">${e.completed ? '✅' : ''}</td>
+            <td class="px-4 py-2 border-b text-xs">${e.enrolledAt && e.enrolledAt.toDate ? e.enrolledAt.toDate().toLocaleString() : '-'}</td>
+          </tr>`;
+        });
+        html += '</tbody></table></div>';
+        enrollContainer.innerHTML = html;
+      } catch (err) {
+        enrollContainer.innerHTML = `<div class="text-red-600">Error loading enrollments: ${err.message}</div>`;
+      }
+    }
+
+    // --- Payment Requests Table ---
+    async function loadPaymentRequests() {
+      paymentsContainer.innerHTML = '<div class="text-gray-500">Loading payment requests...</div>';
+      try {
+        if (!window.firebaseServicesInitialized || !window.db) {
+          paymentsContainer.innerHTML = '<div class="text-red-600">Firebase not ready.</div>';
+          return;
+        }
+        // Fetch all payment requests
+        const paySnap = await window.db().collection('payment_requests').where('status', '==', 'pending').get();
+        const requests = paySnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        if (requests.length === 0) {
+          paymentsContainer.innerHTML = '<div class="text-gray-500">No pending payment requests.</div>';
+          return;
+        }
+        // Fetch all courses for mapping
+        const courseSnap = await window.db().collection('courses').get();
+        const courses = {};
+        courseSnap.docs.forEach(doc => { courses[doc.id] = doc.data(); });
+
+        // Render table
+        let html = `<div class="overflow-x-auto"><table class="min-w-full bg-white rounded-lg shadow">
+          <thead><tr>
+            <th class="px-4 py-2 border-b">User Name</th>
+            <th class="px-4 py-2 border-b">User Email</th>
+            <th class="px-4 py-2 border-b">Course</th>
+            <th class="px-4 py-2 border-b">Txn ID</th>
+            <th class="px-4 py-2 border-b">Screenshot</th>
+            <th class="px-4 py-2 border-b">Actions</th>
+          </tr></thead><tbody>`;
+        requests.forEach(r => {
+          const course = courses[r.courseId] || {};
+          html += `<tr class="table-row">
+            <td class="px-4 py-2 border-b">${r.userName || '-'}</td>
+            <td class="px-4 py-2 border-b">${r.userEmail || '-'}</td>
+            <td class="px-4 py-2 border-b font-semibold">${course.title || r.courseId || '-'}</td>
+            <td class="px-4 py-2 border-b">${r.transactionId || '-'}</td>
+            <td class="px-4 py-2 border-b"><a href="${r.screenshotUrl}" target="_blank"><img src="${r.screenshotUrl}" alt="Screenshot" class="h-16 rounded shadow"/></a></td>
+            <td class="px-4 py-2 border-b">
+              <button class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded mr-2" onclick="approvePaymentRequest('${r.id}', '${r.userId}', '${r.courseId}', '${r.userName}', '${r.userEmail}')">Approve</button>
+              <button class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded" onclick="rejectPaymentRequest('${r.id}')">Reject</button>
+            </td>
+          </tr>`;
+        });
+        html += '</tbody></table></div>';
+        paymentsContainer.innerHTML = html;
+      } catch (err) {
+        paymentsContainer.innerHTML = `<div class="text-red-600">Error loading payment requests: ${err.message}</div>`;
+      }
+    }
+
+    // Approve payment: enroll user and mark request as approved
+    async function approvePaymentRequest(requestId, userId, courseId, userName, userEmail) {
+      if (!window.firebaseServicesInitialized || !window.db) return;
+      try {
+        // Enroll user
+        await window.db().collection('enrollments').add({
+          userId, userName, userEmail, courseId,
+          enrolledAt: firebase.firestore.FieldValue.serverTimestamp(),
+          progress: 0,
+          completed: false
+        });
+        // Mark payment request as approved
+        await window.db().collection('payment_requests').doc(requestId).update({ status: 'approved' });
+        showMessage('Payment approved and user enrolled!');
+        loadPaymentRequests();
+      } catch (err) {
+        showMessage('Error approving payment: ' + err.message, 'error');
+      }
+    }
+
+    // Reject payment: mark request as rejected
+    async function rejectPaymentRequest(requestId) {
+      if (!window.firebaseServicesInitialized || !window.db) return;
+      try {
+        await window.db().collection('payment_requests').doc(requestId).update({ status: 'rejected' });
+        showMessage('Payment request rejected.');
+        loadPaymentRequests();
+      } catch (err) {
+        showMessage('Error rejecting payment: ' + err.message, 'error');
+      }
+    }
+  </script>
+  <script>
+    let days = [];
+    let loadedCourseId = null;
+
+    // Initialize with one empty day
+    function initializeDays() {
+      if (days.length === 0) {
+        days = [{
+          title: 'Day 1',
+          lectures: [],
+          notes: []
+        }];
+      }
+      renderDays();
+    }
+
+    function renderDays() {
+      const container = document.getElementById('days-container');
+      container.innerHTML = '';
+      
+      days.forEach((day, dayIdx) => {
+        const dayCard = document.createElement('div');
+        dayCard.className = 'day-card p-6 text-white';
+        dayCard.innerHTML = `
+          <div class="flex justify-between items-center mb-4">
+            <input type="text" value="${day.title}" 
+                   class="text-2xl font-bold bg-transparent border-2 border-white/30 rounded-lg px-4 py-2 text-white placeholder-white/70 focus:border-white focus:outline-none"
+                   onchange="updateDayTitle(${dayIdx}, this.value)">
+            <button onclick="removeDay(${dayIdx})" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-semibold">
+              🗑️ Delete Day
+            </button>
+          </div>
+          
+          <!-- Lectures Section -->
+          <div class="bg-white/10 rounded-lg p-4 mb-4">
+            <div class="flex justify-between items-center mb-3">
+              <h4 class="text-lg font-semibold">🎬 Lectures</h4>
+              <button onclick="addLecture(${dayIdx})" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm">
+                + Add Lecture
+              </button>
+            </div>
+            <div class="space-y-2" id="lectures-${dayIdx}">
+              ${renderLectures(dayIdx)}
+            </div>
+          </div>
+          
+          <!-- Notes Section -->
+          <div class="bg-white/10 rounded-lg p-4">
+            <div class="flex justify-between items-center mb-3">
+              <h4 class="text-lg font-semibold">📝 Notes</h4>
+              <button onclick="addNote(${dayIdx})" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm">
+                + Add Note
+              </button>
+            </div>
+            <div class="space-y-2" id="notes-${dayIdx}">
+              ${renderNotes(dayIdx)}
+            </div>
+          </div>
+        `;
+        container.appendChild(dayCard);
+      });
+    }
+
+    function renderLectures(dayIdx) {
+      const lectures = days[dayIdx].lectures || [];
+      return lectures.map((lecture, lectureIdx) => `
+        <div class="bg-white/20 rounded-lg p-3 flex gap-3 items-center">
+          <input type="text" placeholder="Lecture Title" value="${lecture.title || ''}" 
+                 class="flex-1 px-3 py-2 rounded bg-white/20 text-white placeholder-white/70 border border-white/30 focus:border-white focus:outline-none"
+                 onchange="updateLecture(${dayIdx}, ${lectureIdx}, 'title', this.value)">
+          <input type="text" placeholder="Duration" value="${lecture.duration || ''}" 
+                 class="w-24 px-3 py-2 rounded bg-white/20 text-white placeholder-white/70 border border-white/30 focus:border-white focus:outline-none"
+                 onchange="updateLecture(${dayIdx}, ${lectureIdx}, 'duration', this.value)">
+          <input type="url" placeholder="Video URL" value="${lecture.videoUrl || ''}" 
+                 class="flex-1 px-3 py-2 rounded bg-white/20 text-white placeholder-white/70 border border-white/30 focus:border-white focus:outline-none"
+                 onchange="updateLecture(${dayIdx}, ${lectureIdx}, 'videoUrl', this.value)">
+          <button onclick="removeLecture(${dayIdx}, ${lectureIdx})" class="text-red-300 hover:text-red-100 font-bold text-xl">
+            ✕
+          </button>
+        </div>
+      `).join('');
+    }
+
+    function renderNotes(dayIdx) {
+      const notes = days[dayIdx].notes || [];
+      return notes.map((note, noteIdx) => `
+        <div class="bg-white/20 rounded-lg p-3">
+          <div class="flex gap-3 items-start mb-2">
+            <input type="text" placeholder="Note Title" value="${note.title || ''}" 
+                   class="flex-1 px-3 py-2 rounded bg-white/20 text-white placeholder-white/70 border border-white/30 focus:border-white focus:outline-none"
+                   onchange="updateNote(${dayIdx}, ${noteIdx}, 'title', this.value)">
+            <input type="url" placeholder="PDF URL (optional)" value="${note.pdfUrl || ''}" 
+                   class="flex-1 px-3 py-2 rounded bg-white/20 text-white placeholder-white/70 border border-white/30 focus:border-white focus:outline-none"
+                   onchange="updateNote(${dayIdx}, ${noteIdx}, 'pdfUrl', this.value)">
+            <button onclick="removeNote(${dayIdx}, ${noteIdx})" class="text-red-300 hover:text-red-100 font-bold text-xl">
+              ✕
+            </button>
+          </div>
+          <textarea placeholder="Note Content (HTML allowed)" 
+                    class="w-full px-3 py-2 rounded bg-white/20 text-white placeholder-white/70 border border-white/30 focus:border-white focus:outline-none h-20"
+                    onchange="updateNote(${dayIdx}, ${noteIdx}, 'content', this.value)">${note.content || ''}</textarea>
+        </div>
+      `).join('');
+    }
+
+    // Day Management Functions
+    function updateDayTitle(dayIdx, title) {
+      days[dayIdx].title = title;
+    }
+
+    function addDay() {
+      const dayNumber = days.length + 1;
+      days.push({
+        title: `Day ${dayNumber}`,
+        lectures: [],
+        notes: []
+      });
+      renderDays();
+    }
+
+    function removeDay(dayIdx) {
+      if (days.length > 1) {
+        days.splice(dayIdx, 1);
+        renderDays();
+      } else {
+        showMessage('At least one day is required!', 'error');
+      }
+    }
+
+    // Lecture Management Functions
+    function addLecture(dayIdx) {
+      if (!days[dayIdx].lectures) days[dayIdx].lectures = [];
+      days[dayIdx].lectures.push({ title: '', duration: '', videoUrl: '' });
+      renderDays();
+    }
+
+    function updateLecture(dayIdx, lectureIdx, field, value) {
+      days[dayIdx].lectures[lectureIdx][field] = value;
+    }
+
+    function removeLecture(dayIdx, lectureIdx) {
+      days[dayIdx].lectures.splice(lectureIdx, 1);
+      renderDays();
+    }
+
+    // Note Management Functions
+    function addNote(dayIdx) {
+      if (!days[dayIdx].notes) days[dayIdx].notes = [];
+      days[dayIdx].notes.push({ title: '', content: '', pdfUrl: '' });
+      renderDays();
+    }
+
+    function updateNote(dayIdx, noteIdx, field, value) {
+      days[dayIdx].notes[noteIdx][field] = value;
+    }
+
+    function removeNote(dayIdx, noteIdx) {
+      days[dayIdx].notes.splice(noteIdx, 1);
+      renderDays();
+    }
+
+    function showMessage(message, type = 'success') {
+      const messageEl = document.getElementById('admin-message');
+      messageEl.textContent = message;
+      messageEl.className = `mt-8 text-center font-semibold text-lg ${
+        type === 'success' ? 'text-green-600' : 'text-red-600'
+      }`;
+      setTimeout(() => {
+        messageEl.textContent = '';
+        messageEl.className = 'mt-8 text-center';
+      }, 5000);
+    }
+
+    // Load Course Function (supports search by ID or Title)
+    async function loadCourse() {
+      const searchInput = document.getElementById('search-course-id').value.trim();
+      if (!searchInput) {
+        showMessage('Please enter a course ID or title.', 'error');
+        return;
+      }
+
+      if (!window.firebaseServicesInitialized || !window.db) {
+        showMessage('Firebase not ready. Please wait...', 'error');
+        return;
+      }
+
+      let doc = null;
+      let courseId = null;
+      let data = null;
+      try {
+        // Try as ID first
+        const idCandidate = searchInput.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        let docRef = await window.db().collection('courses').doc(idCandidate).get();
+        if (docRef.exists) {
+          doc = docRef;
+          courseId = idCandidate;
+        } else {
+          // Try as Title (case-insensitive)
+          const snap = await window.db().collection('courses').where('title', '==', searchInput).get();
+          if (!snap.empty) {
+            doc = snap.docs[0];
+            courseId = doc.id;
+          } else {
+            // Try case-insensitive search
+            const allSnap = await window.db().collection('courses').get();
+            const found = allSnap.docs.find(d => (d.data().title || '').toLowerCase() === searchInput.toLowerCase());
+            if (found) {
+              doc = found;
+              courseId = found.id;
+            }
+          }
+        }
+
+        if (!doc) {
+          showMessage('Course not found.', 'error');
+          return;
+        }
+
+        data = doc.data();
+        loadedCourseId = courseId;
+
+        // Populate basic course info
+        document.getElementById('course-title').value = data.title || '';
+        document.getElementById('course-description').value = data.description || '';
+        document.getElementById('course-instructor').value = data.instructor || '';
+        document.getElementById('course-image').value = data.image || '';
+        document.getElementById('course-category').value = data.category || '';
+        document.getElementById('course-level').value = data.level || '';
+        document.getElementById('course-duration').value = data.duration || '';
+        document.getElementById('course-price').value = data.price || 0;
+        document.getElementById('course-objectives').value = (data.objectives || []).join(', ');
+        document.getElementById('course-featured').checked = !!data.featured;
+
+        // Load days structure
+        if (data.modules && data.modules.length > 0) {
+          days = data.modules.map(module => ({
+            title: module.title || 'Day',
+            lectures: module.lectures || [],
+            notes: module.notes || []
+          }));
+        } else {
+          days = [{
+            title: 'Day 1',
+            lectures: [],
+            notes: []
+          }];
+        }
+
+        renderDays();
+        showMessage('Course loaded successfully! You can now edit and add content.');
+      } catch (error) {
+        showMessage('Error loading course: ' + error.message, 'error');
+      }
+    }
+
+    // Save Course Function
+    async function saveCourse() {
+      if (!window.firebaseServicesInitialized || !window.db) {
+        showMessage('Firebase not ready. Please wait...', 'error');
+        return;
+      }
+
+      const title = document.getElementById('course-title').value.trim();
+      const description = document.getElementById('course-description').value.trim();
+      const instructor = document.getElementById('course-instructor').value.trim();
+      const image = document.getElementById('course-image').value.trim();
+      const category = document.getElementById('course-category').value.trim();
+      const level = document.getElementById('course-level').value.trim();
+      const duration = document.getElementById('course-duration').value.trim();
+      const price = parseFloat(document.getElementById('course-price').value);
+      const objectives = document.getElementById('course-objectives').value.split(',').map(o => o.trim()).filter(Boolean);
+      const featured = document.getElementById('course-featured').checked;
+
+      // Validation
+      if (!title || !description || !instructor || !image || !category || !level || !duration || isNaN(price)) {
+        showMessage('Please fill all required fields.', 'error');
+        return;
+      }
+
+      if (days.length === 0) {
+        showMessage('Please add at least one day.', 'error');
+        return;
+      }
+
+      const hasLectures = days.some(day => day.lectures && day.lectures.length > 0);
+      if (!hasLectures) {
+        showMessage('Please add at least one lecture.', 'error');
+        return;
+      }
+
+      try {
+        const course = {
+          title, description, instructor, image, category, level, duration, price,
+          objectives, featured,
+          modules: days.map(day => ({
+            title: day.title,
+            lectures: day.lectures || [],
+            notes: day.notes || []
+          })),
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        const courseId = loadedCourseId || title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
+        await window.db().collection('courses').doc(courseId).set({ id: courseId, ...course }, { merge: true });
+
+        showMessage('✅ Course saved successfully!');
+        
+        if (!loadedCourseId) {
+          resetForm();
+        }
+      } catch (error) {
+        showMessage('Error saving course: ' + error.message, 'error');
+      }
+    }
+
+    function resetForm() {
+      document.getElementById('course-form').reset();
+      document.getElementById('search-course-id').value = '';
+      days = [{
+        title: 'Day 1',
+        lectures: [],
+        notes: []
+      }];
+      loadedCourseId = null;
+      renderDays();
+      showMessage('Form reset successfully.');
+    }
+
+    // Global function assignments
+    window.updateDayTitle = updateDayTitle;
+    window.addDay = addDay;
+    window.removeDay = removeDay;
+    window.addLecture = addLecture;
+    window.updateLecture = updateLecture;
+    window.removeLecture = removeLecture;
+    window.addNote = addNote;
+    window.updateNote = updateNote;
+    window.removeNote = removeNote;
+
+    // Event Listeners
+    document.getElementById('add-day-btn').onclick = addDay;
+    document.getElementById('load-course-btn').onclick = loadCourse;
+    document.getElementById('save-course-btn').onclick = saveCourse;
+    document.getElementById('reset-form-btn').onclick = resetForm;
+
+    // Initialize
+    initializeDays();
+  </script>
+</body>
+</html>
