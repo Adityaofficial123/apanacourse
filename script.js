@@ -1,6 +1,3 @@
-// Global variables
-let currentUser = null;
-
 // Navbar scroll effect
 window.addEventListener('scroll', function() {
   const navbar = document.getElementById('navbar');
@@ -23,11 +20,10 @@ function updateAuthUI(user) {
     if (authButtons) authButtons.classList.add('hidden');
     if (userInfo) userInfo.classList.remove('hidden');
     if (userName) userName.textContent = user.displayName || user.email;
-    window.currentUser = user;
+    // currentUser is managed by firebase.js
   } else {
     if (authButtons) authButtons.classList.remove('hidden');
     if (userInfo) userInfo.classList.add('hidden');
-    window.currentUser = null;
   }
 }
 
@@ -47,15 +43,13 @@ function hideLoginModal() {
   }
 }
 
-// Google login
+// Google login (redirect – no popup)
 async function signInWithGoogle() {
   try {
-    const result = await firebase.auth().signInWithPopup(googleProvider);
-    console.log('User signed in:', result.user.email);
-    hideLoginModal();
+    await firebase.auth().signInWithRedirect(googleProvider);
   } catch (error) {
-    console.error('Error signing in:', error);
-    alert('Error signing in with Google. Please try again.');
+    console.error('Error starting Google sign-in redirect:', error);
+    alert('Error starting Google sign-in. Please try again.');
   }
 }
 
@@ -75,10 +69,10 @@ async function signOut() {
 document.addEventListener('DOMContentLoaded', function() {
   console.log('Script.js loaded');
   
-  // Login button in navigation
+  // Login button in navigation: trigger Google redirect directly (no modal)
   const loginBtn = document.getElementById('login-btn');
   if (loginBtn) {
-    loginBtn.addEventListener('click', showLoginModal);
+    loginBtn.addEventListener('click', signInWithGoogle);
   }
   
   // Google login button in modal
@@ -109,7 +103,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   
-  // Wait for Firebase to initialize before setting up auth
+  // Wait for Firebase to initialize before handling redirect result and setting up auth
   waitForFirebaseAndSetupAuth();
 });
 
@@ -118,9 +112,30 @@ function waitForFirebaseAndSetupAuth() {
   const interval = setInterval(() => {
     if (window.firebaseServicesInitialized) {
       clearInterval(interval);
-      setupAuthListener();
+      // Handle redirect result once after returning from Google
+      handleRedirectResult().finally(() => {
+        setupAuthListener();
+      });
     }
   }, 100);
+}
+
+// Process Google sign-in redirect result (runs once after init)
+async function handleRedirectResult() {
+  try {
+    const result = await firebase.auth().getRedirectResult();
+    if (result && result.user) {
+      console.log('Redirect sign-in success:', result.user.email);
+      updateAuthUI(result.user);
+    }
+  } catch (error) {
+    // Common benign case: no redirect result available
+    if (error && error.code) {
+      console.warn('No redirect result or sign-in error:', error.code);
+    } else {
+      console.warn('No redirect result.');
+    }
+  }
 }
 
 // Setup authentication state listener
@@ -141,28 +156,23 @@ function setupAuthListener() {
 
 // Load featured courses for homepage
 async function loadFeaturedCourses() {
+  // Resolve container once at the start
+  const featuredCoursesContainer = document.getElementById('featured-courses');
+  if (!featuredCoursesContainer) {
+    console.warn('featured-courses container not found on this page. Skipping featured courses render.');
+    return;
+  }
   try {
-    // Wait for db to be available
-    if (!window.db || typeof window.db !== 'function') {
-      console.log('DB not ready yet for featured courses');
+    // Prefer cached API to reduce reads
+    if (!window.DatabaseAPI) {
+      console.log('DatabaseAPI not ready yet for featured courses');
+      featuredCoursesContainer.innerHTML = '<p class="text-center text-gray-600">Loading featured courses...</p>';
       return;
     }
 
-    console.log('Loading featured courses...');
-    
-    const snapshot = await window.db().collection('courses')
-      .where('featured', '==', true)
-      .limit(3)
-      .get();
-    
-    const featuredCoursesContainer = document.getElementById('featured-courses');
-    if (!featuredCoursesContainer) return;
-    
-    const courses = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-    
+    console.log('Loading featured courses (cached if available)...');
+    const courses = await window.DatabaseAPI.getFeaturedCourses();
+
     console.log('Featured courses loaded:', courses.length);
     
     if (courses.length > 0) {
@@ -172,7 +182,6 @@ async function loadFeaturedCourses() {
     }
   } catch (error) {
     console.error('Error loading featured courses:', error);
-    const featuredCoursesContainer = document.getElementById('featured-courses');
     if (featuredCoursesContainer) {
       featuredCoursesContainer.innerHTML = '<p class="text-center text-red-600">Error loading featured courses.</p>';
     }
@@ -229,6 +238,7 @@ function createCourseCard(course) {
 
     const ratingHTML = generateStarRating(course.rating || 4.5);
     const imageUrl = course.image || 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=400&h=200&fit=crop';
+    const isFree = course.price === 0 || course.price === '0' || (typeof course.price === 'string' && course.price.toLowerCase() === 'free');
 
     return `
         <div class="course-card bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300" data-course-id="${course.id}">
@@ -268,9 +278,7 @@ function createCourseCard(course) {
                     <a href="course-details.html?id=${course.id}" class="flex-1 bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors font-semibold text-center text-sm">
                         View Details
                     </a>
-                    <button onclick="homepage.enrollCourse('${course.id}')" class="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors font-semibold text-sm">
-                        ${course.price === 0 || course.price === '0' || course.price === 'Free' ? 'Enroll Free' : 'Enroll Now'}
-                    </button>
+                    ${isFree ? `<button onclick="homepage.enrollCourse('${course.id}')" class="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors font-semibold text-sm">Enroll Free</button>` : ''}
                 </div>
             </div>
         </div>
