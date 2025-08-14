@@ -65,14 +65,285 @@ async function signOut() {
   }
 }
 
+// Email/Password Login
+async function signInWithEmail(email, password) {
+  try {
+    console.log('Attempting to sign in with email:', email);
+    const auth = firebase.auth();
+    console.log('Firebase auth instance:', auth ? 'Available' : 'Not available');
+    
+    const userCredential = await auth.signInWithEmailAndPassword(email, password);
+    console.log('User signed in successfully:', userCredential.user.email);
+    return userCredential.user;
+  } catch (error) {
+    console.error('Error details during sign in:', {
+      code: error.code,
+      message: error.message,
+      email: email,
+      timestamp: new Date().toISOString()
+    });
+    throw error;
+  }
+}
+
+// Send password reset email
+async function sendPasswordResetEmail(email) {
+  try {
+    await firebase.auth().sendPasswordResetEmail(email);
+    return true;
+  } catch (error) {
+    console.error('Error sending password reset email:', error);
+    throw error;
+  }
+}
+
+// Toggle loading state for buttons
+function setLoading(button, isLoading) {
+  const spinner = button.querySelector('svg');
+  const text = button.querySelector('span');
+  
+  if (isLoading) {
+    button.disabled = true;
+    spinner.classList.remove('hidden');
+    if (text) text.style.opacity = '0.7';
+  } else {
+    button.disabled = false;
+    spinner.classList.add('hidden');
+    if (text) text.style.opacity = '1';
+  }
+}
+
+// Show/hide forgot password modal
+function showForgotPasswordModal() {
+  const modal = document.getElementById('forgot-password-modal');
+  if (modal) {
+    modal.classList.remove('hidden');
+    document.getElementById('reset-email').focus();
+  }
+}
+
+function hideForgotPasswordModal() {
+  const modal = document.getElementById('forgot-password-modal');
+  if (modal) {
+    modal.classList.add('hidden');
+  }
+}
+
+// Initialize login form
+function initLoginForm() {
+  const loginForm = document.getElementById('login-form');
+  const forgotPasswordBtn = document.getElementById('forgot-password');
+  const sendResetBtn = document.getElementById('send-reset-link');
+  const cancelResetBtn = document.getElementById('cancel-reset');
+  const loginEmail = document.getElementById('login-email');
+  const loginPassword = document.getElementById('login-password');
+  const loginSubmit = document.getElementById('login-submit');
+
+  // Enable/disable login button based on form validity
+  function updateLoginButtonState() {
+    if (loginEmail && loginPassword && loginSubmit) {
+      loginSubmit.disabled = !loginEmail.validity.valid || !loginPassword.value.trim();
+    }
+  }
+
+  // Email/Password login form submission
+  if (loginForm) {
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const email = loginEmail.value.trim();
+      const password = loginPassword.value;
+      const errorElement = document.getElementById('login-error');
+      
+      if (!email || !password) {
+        showError(errorElement, 'Please enter both email and password');
+        return;
+      }
+      
+      try {
+        setLoading(loginSubmit, true);
+        
+        // First check account status
+        const accountStatus = await checkAccountStatus(email);
+        console.log('Account status:', accountStatus);
+        
+        if (!accountStatus.exists) {
+          showError(errorElement, accountStatus.message);
+          return;
+        }
+        
+        // Try to sign in
+        try {
+          await signInWithEmail(email, password);
+          hideLoginModal();
+          // Reset form
+          loginForm.reset();
+          errorElement.classList.add('hidden');
+        } catch (error) {
+          let errorMessage = 'Failed to sign in. Please try again.';
+          switch (error.code) {
+            case 'auth/wrong-password':
+              errorMessage = 'Incorrect password. Please try again or use "Forgot password" to reset it.';
+              break;
+            case 'auth/too-many-requests':
+              errorMessage = 'Too many failed attempts. Please try again later or reset your password.';
+              break;
+            case 'auth/user-disabled':
+              errorMessage = 'This account has been disabled. Please contact support.';
+              break;
+            default:
+              errorMessage = `Error: ${error.message}`;
+          }
+          showError(errorElement, errorMessage);
+        }
+      } catch (error) {
+        console.error('Unexpected error during login:', error);
+        showError(errorElement, 'An unexpected error occurred. Please try again.');
+      } finally {
+        setLoading(loginSubmit, false);
+      }
+    });
+  }
+
+  // Forgot password button click
+  if (forgotPasswordBtn) {
+    forgotPasswordBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const email = loginEmail.value.trim();
+      if (email) {
+        document.getElementById('reset-email').value = email;
+      }
+      showForgotPasswordModal();
+    });
+  }
+
+  // Send reset link button click
+  if (sendResetBtn) {
+    sendResetBtn.addEventListener('click', async () => {
+      const email = document.getElementById('reset-email').value.trim();
+      const errorElement = document.getElementById('forgot-error');
+      const successElement = document.getElementById('forgot-success');
+      
+      if (!email) {
+        showError(errorElement, 'Please enter your email address');
+        return;
+      }
+      
+      try {
+        setLoading(sendResetBtn, true);
+        errorElement.classList.add('hidden');
+        successElement.classList.add('hidden');
+        
+        await sendPasswordResetEmail(email);
+        
+        // Show success message
+        successElement.textContent = `Password reset email sent to ${email}. Please check your inbox.`;
+        successElement.classList.remove('hidden');
+        
+        // Hide success message after 5 seconds
+        setTimeout(() => {
+          successElement.classList.add('hidden');
+          hideForgotPasswordModal();
+        }, 5000);
+        
+      } catch (error) {
+        let errorMessage = 'Failed to send reset email. Please try again.';
+        if (error.code === 'auth/user-not-found') {
+          errorMessage = 'No account found with this email address';
+        }
+        showError(errorElement, errorMessage);
+      } finally {
+        setLoading(sendResetBtn, false);
+      }
+    });
+  }
+
+  // Cancel reset button
+  if (cancelResetBtn) {
+    cancelResetBtn.addEventListener('click', hideForgotPasswordModal);
+  }
+
+  // Close modal when clicking outside
+  const forgotModal = document.getElementById('forgot-password-modal');
+  if (forgotModal) {
+    forgotModal.addEventListener('click', (e) => {
+      if (e.target === forgotModal) {
+        hideForgotPasswordModal();
+      }
+    });
+  }
+
+  // Close button for forgot password modal
+  const closeForgotModalBtn = document.getElementById('close-forgot-modal');
+  if (closeForgotModalBtn) {
+    closeForgotModalBtn.addEventListener('click', hideForgotPasswordModal);
+  }
+
+  // Update login button state on input
+  if (loginEmail && loginPassword) {
+    [loginEmail, loginPassword].forEach(input => {
+      input.addEventListener('input', updateLoginButtonState);
+    });
+  }
+}
+
+// Check user account status
+async function checkAccountStatus(email) {
+  try {
+    console.log('Checking account status for:', email);
+    const methods = await firebase.auth().fetchSignInMethodsForEmail(email);
+    console.log('Available sign-in methods:', methods);
+    
+    if (methods.length === 0) {
+      return { exists: false, message: 'No account found with this email. Please sign up first.' };
+    }
+    
+    if (!methods.includes('password')) {
+      return { 
+        exists: true, 
+        message: 'This email is registered but not with a password. Try signing in with Google or another method.'
+      };
+    }
+    
+    return { exists: true, message: 'Account exists and password sign-in is enabled.' };
+  } catch (error) {
+    console.error('Error checking account status:', error);
+    return { 
+      exists: false, 
+      message: `Error checking account: ${error.message}` 
+    };
+  }
+}
+
+// Helper function to show error messages
+function showError(element, message) {
+  if (element) {
+    element.textContent = message;
+    element.classList.remove('hidden');
+    // Hide error after 5 seconds
+    setTimeout(() => {
+      element.classList.add('hidden');
+    }, 5000);
+  }
+}
+
 // Event listeners
 document.addEventListener('DOMContentLoaded', function() {
   console.log('Script.js loaded');
   
-  // Login button in navigation: trigger Google redirect directly (no modal)
+  // Initialize login form and related functionality
+  initLoginForm();
+  
+  // Login button in navigation: show login modal
   const loginBtn = document.getElementById('login-btn');
   if (loginBtn) {
-    loginBtn.addEventListener('click', signInWithGoogle);
+    loginBtn.addEventListener('click', () => {
+      const loginModal = document.getElementById('login-modal');
+      if (loginModal) {
+        loginModal.classList.remove('hidden');
+        document.getElementById('login-email').focus();
+      }
+    });
   }
   
   // Google login button in modal
@@ -102,6 +373,14 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
   }
+  
+  // Close modal when pressing Escape key
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      hideLoginModal();
+      hideForgotPasswordModal();
+    }
+  });
   
   // Wait for Firebase to initialize before handling redirect result and setting up auth
   waitForFirebaseAndSetupAuth();
