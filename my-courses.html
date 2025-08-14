@@ -5,10 +5,71 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>My Learning - SmartLearn</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  
+  <!-- Firebase Configuration and Initialization -->
+  <script src="firebase.js"></script>
+  
+  <!-- Custom Styles -->
   <link rel="stylesheet" href="style.css" />
+  
+  <!-- Wait for Firebase to be ready before loading other scripts -->
+  <script>
+    // Function to load scripts after Firebase is ready
+    function loadScripts() {
+      const scripts = [
+        'my-courses.js'
+      ];
+      
+      function loadScript(index) {
+        if (index >= scripts.length) {
+          console.log('All scripts loaded successfully');
+          return;
+        }
+        
+        const script = document.createElement('script');
+        script.src = scripts[index];
+        script.onload = () => {
+          console.log(`Loaded: ${scripts[index]}`);
+          loadScript(index + 1);
+        };
+        script.onerror = (error) => {
+          console.error(`Error loading ${scripts[index]}:`, error);
+          loadScript(index + 1);
+        };
+        document.body.appendChild(script);
+      }
+      
+      // Start loading scripts
+      loadScript(0);
+    }
+    
+    // Check if Firebase is already initialized
+    if (window.firebaseServicesInitialized) {
+      loadScripts();
+    } else {
+      // Wait for Firebase to be ready
+      const checkFirebase = setInterval(() => {
+        if (window.firebaseServicesInitialized) {
+          clearInterval(checkFirebase);
+          loadScripts();
+        }
+      }, 100);
+      
+      // Timeout after 5 seconds
+      setTimeout(() => {
+        if (!window.firebaseServicesInitialized) {
+          console.error('Firebase initialization timed out');
+          clearInterval(checkFirebase);
+          // Still try to load scripts
+          loadScripts();
+        }
+      }, 5000);
+    }
+  </script>
 </head>
 <body class="bg-gray-50">
   <!-- Navigation -->
@@ -108,12 +169,12 @@
           </nav>
         </div>
 
-        <div id="loading" class="text-center py-12">
+        <div id="my-courses-loading" class="text-center py-12">
           <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
           <p class="mt-4 text-gray-600">Loading your courses...</p>
         </div>
 
-        <div id="courses-container" class="grid md:grid-cols-2 lg:grid-cols-3 gap-8 hidden">
+        <div id="courses-container" class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
           <!-- Courses will be loaded dynamically -->
         </div>
 
@@ -131,6 +192,40 @@
         </div>
       </div>
     </section>
+  </div>
+
+  <!-- Review Modal -->
+  <div id="review-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md">
+      <div class="p-6 border-b flex items-center justify-between">
+        <h3 class="text-xl font-bold">Review Course</h3>
+        <button onclick="closeReviewModal()" class="text-gray-400 hover:text-gray-600" aria-label="Close review modal">
+          <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
+        </button>
+      </div>
+      <div class="p-6 space-y-4">
+        <input type="hidden" id="review-course-id" />
+        <input type="hidden" id="review-rating" value="5" />
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Rating</label>
+          <div id="review-stars" class="flex items-center gap-1 text-2xl select-none">
+            <button type="button" class="star text-yellow-400" data-star="1" aria-label="1 star" onclick="setReviewRating(1)">★</button>
+            <button type="button" class="star text-yellow-400" data-star="2" aria-label="2 stars" onclick="setReviewRating(2)">★</button>
+            <button type="button" class="star text-yellow-400" data-star="3" aria-label="3 stars" onclick="setReviewRating(3)">★</button>
+            <button type="button" class="star text-yellow-400" data-star="4" aria-label="4 stars" onclick="setReviewRating(4)">★</button>
+            <button type="button" class="star text-yellow-400" data-star="5" aria-label="5 stars" onclick="setReviewRating(5)">★</button>
+          </div>
+        </div>
+        <div>
+          <label for="review-text" class="block text-sm font-medium text-gray-700 mb-1">Comments (optional)</label>
+          <textarea id="review-text" rows="5" class="w-full border rounded-lg p-3 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-400" placeholder="Share your experience with this course..."></textarea>
+        </div>
+      </div>
+      <div class="p-6 border-t flex justify-end gap-3">
+        <button onclick="closeReviewModal()" class="px-4 py-2 rounded-lg border text-gray-700 hover:bg-gray-50">Cancel</button>
+        <button onclick="submitReview()" class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700">Submit Review</button>
+      </div>
+    </div>
   </div>
 
   <!-- Login Modal -->
