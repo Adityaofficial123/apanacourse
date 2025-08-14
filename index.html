@@ -1378,14 +1378,16 @@
                     const courses = await window.DatabaseAPI.getFeaturedCourses();
 
                     if (courses.length > 0) {
-                        featuredCoursesContainer.innerHTML = courses.map(course => this.createCourseCard(course)).join('');
+                        const withStats = await this.attachReviewStats(courses);
+                        featuredCoursesContainer.innerHTML = withStats.map(course => this.createCourseCard(course)).join('');
                         featuredCoursesContainer.classList.remove('hidden');
                         loadingContainer.classList.add('hidden');
                     } else {
                         // If no featured courses, load first 3 courses
                         const allCourses = await window.DatabaseAPI.getAllCourses();
                         const firstThree = allCourses.slice(0, 3);
-                        featuredCoursesContainer.innerHTML = firstThree.map(course => this.createCourseCard(course)).join('');
+                        const withStats = await this.attachReviewStats(firstThree);
+                        featuredCoursesContainer.innerHTML = withStats.map(course => this.createCourseCard(course)).join('');
                         featuredCoursesContainer.classList.remove('hidden');
                         loadingContainer.classList.add('hidden');
                     }
@@ -1466,6 +1468,56 @@
                 }
             }
 
+            // ===== Reviews helpers for homepage cards =====
+            async getReviewStats(courseId) {
+                try {
+                    if (!window.db || typeof window.db !== 'function' || !courseId) {
+                        return { avg: null, count: 0 };
+                    }
+                    const ref = window.db()
+                        .collection('courses')
+                        .doc(courseId)
+                        .collection('reviews')
+                        .where('approved', '==', true);
+                    const snap = await ref.get();
+                    let sum = 0;
+                    let count = 0;
+                    snap.forEach(doc => {
+                        const r = doc.data() || {};
+                        const val = Number(r.rating);
+                        if (!isNaN(val)) {
+                            sum += val;
+                            count += 1;
+                        }
+                    });
+                    const avg = count ? (sum / count) : null;
+                    return { avg, count };
+                } catch (e) {
+                    console.warn('Failed to fetch review stats for course', courseId, e);
+                    return { avg: null, count: 0 };
+                }
+            }
+
+            async attachReviewStats(courses) {
+                try {
+                    if (!Array.isArray(courses)) return [];
+                    const enriched = await Promise.all(courses.map(async (c) => {
+                        if (c && c.id) {
+                            const stats = await this.getReviewStats(c.id);
+                            return {
+                                ...c,
+                                rating: (stats.avg != null ? stats.avg : c.rating),
+                                reviews: stats.count
+                            };
+                        }
+                        return c;
+                    }));
+                    return enriched;
+                } catch (_) {
+                    return courses;
+                }
+            }
+
             // Animate counter numbers
             animateCounter(elementId, targetValue, suffix = '') {
                 const element = document.getElementById(elementId);
@@ -1495,18 +1547,24 @@
 
             // Course card renderer
             createCourseCard(course) {
-                const priceLabel = (() => {
-                    const p = course && course.price;
-                    if (p === 0 || p === '0' || (typeof p === 'string' && String(p).toLowerCase() === 'free')) return 'Free';
-                    return typeof p === 'number' ? `$${p}` : (p || 'Free');
-                })();
-
                 const isFree = (() => {
                     const p = course && course.price;
                     return p === 0 || p === '0' || (typeof p === 'string' && String(p).toLowerCase() === 'free');
                 })();
 
-                const rating = course && course.rating ? Number(course.rating).toFixed(1) : '4.8';
+                const priceLabel = (() => {
+                    if (isFree) return 'Free';
+                    const display = (course && (course.displayPrice || course.price));
+                    // If explicitly provided as string (with currency), return as-is
+                    if (typeof display === 'string') return display;
+                    // If numeric, render without conversion; assume stored value is final
+                    if (typeof display === 'number') return String(display);
+                    return 'Free';
+                })();
+
+                const ratingVal = (course && typeof course.rating !== 'undefined') ? Number(course.rating) : NaN;
+                const ratingText = !isNaN(ratingVal) && ratingVal > 0 ? ratingVal.toFixed(1) : '—';
+                const reviewsCount = Number(course && course.reviews) || 0;
                 const students = course && course.students ? course.students : '1K+';
                 const img = course && course.image ? course.image : 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&h=400&fit=crop';
                 const title = course && course.title ? course.title : 'Untitled Course';
@@ -1523,7 +1581,7 @@
                     <div class="p-6">
                         <div class="flex items-center justify-between mb-3">
                             <span class="text-sm px-3 py-1 rounded-full bg-indigo-50 text-indigo-600">${priceLabel}</span>
-                            <span class="text-sm text-gray-500">⭐ ${rating} • ${students}</span>
+                            <span class="text-sm text-gray-500">⭐ ${ratingText} (${reviewsCount} reviews)</span>
                         </div>
                         <h3 class="text-xl font-bold text-gray-900 mb-2">${title}</h3>
                         <p class="text-gray-600 mb-4 line-clamp-2">${desc}</p>
