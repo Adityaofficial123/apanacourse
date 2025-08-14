@@ -114,16 +114,16 @@
             50% { transform: translateY(-25px); }
         }
 
-        @keyframes slideInUp {
-            from {
-                opacity: 0;
-                transform: translateY(50px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
+         @keyframes slideInUp {
+             from {
+                 opacity: 0;
+                 transform: translateY(50px);
+             }
+             to {
+                 opacity: 1;
+                 transform: translateY(0);
+             }
+         }
 
         @keyframes scaleIn {
             from {
@@ -499,9 +499,9 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-20">
                 <div class="flex items-center">
-                    <a href="index.html" class="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                        SmartLearn
-                    </a>
+                  <a href="index.html" class="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                      SmartLearn
+                  </a>
                 </div>
                 
                 <div class="hidden md:flex items-center space-x-10">
@@ -512,8 +512,15 @@
                     <a href="#contact" class="nav-link text-gray-700 hover:text-indigo-600">Contact</a>
                 </div>
 
-                <div class="flex items-center space-x-4">
-                    <div id="auth-buttons" class="flex items-center space-x-3">
+                <!-- Mobile Hamburger -->
+                <button id="mobile-menu-toggle" class="md:hidden inline-flex items-center justify-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500" aria-controls="mobile-menu" aria-expanded="false">
+                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                </button>
+
+                <div class="hidden md:flex items-center space-x-4">
+                    <div id="auth-buttons" class="hidden md:flex items-center space-x-3">
                         <button id="login-btn" class="btn-premium btn-primary">
                             <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -524,7 +531,7 @@
                             Continue with Google
                         </button>
                     </div>
-                    <div id="user-info" class="flex items-center space-x-3">
+                    <div id="user-info" class="hidden md:flex items-center space-x-3">
                         <div class="flex items-center space-x-3">
                             <img id="user-photo" class="w-10 h-10 rounded-full border-2 border-white shadow-lg" alt="User">
                             <span id="user-name" class="text-gray-700 font-medium"></span>
@@ -532,6 +539,29 @@
                         <button id="logout-btn" class="bg-red-500 text-white px-4 py-2 rounded-xl hover:bg-red-600 transition-colors">
                             Logout
                         </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Mobile Menu Panel -->
+        <div id="mobile-menu" class="md:hidden hidden border-t border-gray-100 bg-white">
+            <div class="px-4 pt-4 pb-6 space-y-3">
+                <a href="index.html" class="block text-gray-700 hover:text-indigo-600">Home</a>
+                <a href="courses.html" class="block text-gray-700 hover:text-indigo-600">Courses</a>
+                <a href="my-courses.html" class="block text-gray-700 hover:text-indigo-600">My Learning</a>
+                <a href="#about" class="block text-gray-700 hover:text-indigo-600">About</a>
+                <a href="#contact" class="block text-gray-700 hover:text-indigo-600">Contact</a>
+
+                <div class="pt-3">
+                    <div id="auth-buttons-sm" class="flex">
+                        <button id="login-btn-sm" class="w-full bg-blue-600 text-white py-2.5 px-4 rounded-lg hover:bg-blue-700 transition-colors">Continue with Google</button>
+                    </div>
+                    <div id="user-info-sm" class="hidden items-center justify-between mt-3">
+                        <div class="flex items-center space-x-3">
+                            <img id="user-photo-sm" class="w-9 h-9 rounded-full border" alt="User">
+                            <span id="user-name-sm" class="text-gray-700 font-medium"></span>
+                        </div>
+                        <button id="logout-btn-sm" class="ml-3 bg-red-500 text-white px-3 py-2 rounded-lg hover:bg-red-600">Logout</button>
                     </div>
                 </div>
             </div>
@@ -1578,6 +1608,10 @@
                 const closeModal = document.getElementById('close-modal');
                 const googleLogin = document.getElementById('google-login');
 
+                // Mobile equivalents
+                const loginBtnSm = document.getElementById('login-btn-sm');
+                const logoutBtnSm = document.getElementById('logout-btn-sm');
+
                 // Modal navigation buttons
                 const showSignup = document.getElementById('show-signup');
                 const showLogin = document.getElementById('show-login');
@@ -1601,6 +1635,12 @@
 
                 if (logoutBtn) {
                     logoutBtn.addEventListener('click', () => this.signOut());
+                }
+                if (loginBtnSm) {
+                    loginBtnSm.addEventListener('click', () => this.showLoginModal());
+                }
+                if (logoutBtnSm) {
+                    logoutBtnSm.addEventListener('click', () => this.signOut());
                 }
 
                 if (closeModal) {
@@ -1738,12 +1778,158 @@
                 }
             }
 
+            // ===== Auth: Email/Password Handlers and Helpers =====
+            async handleEmailLogin(e) {
+                e.preventDefault();
+                const emailEl = document.getElementById('login-email');
+                const passEl = document.getElementById('login-password');
+                const remember = document.getElementById('remember-me');
+                const errBox = document.getElementById('login-error');
+                const okBox = document.getElementById('login-success');
+                if (!emailEl || !passEl) return;
+
+                const email = emailEl.value.trim();
+                const password = passEl.value;
+                errBox && (errBox.classList.add('hidden'), errBox.textContent = '');
+                okBox && (okBox.classList.add('hidden'), okBox.textContent = '');
+
+                const btn = document.getElementById('email-login');
+                btn && (btn.disabled = true);
+                try {
+                    const persistence = remember && remember.checked
+                        ? firebase.auth.Auth.Persistence.LOCAL
+                        : firebase.auth.Auth.Persistence.SESSION;
+                    await firebase.auth().setPersistence(persistence);
+                    await firebase.auth().signInWithEmailAndPassword(email, password);
+                    okBox && (okBox.textContent = 'Signed in successfully!', okBox.classList.remove('hidden'));
+                    setTimeout(() => this.hideLoginModal(), 400);
+                } catch (error) {
+                    const msg = this.mapAuthError(error);
+                    if (errBox) {
+                        errBox.textContent = msg;
+                        errBox.classList.remove('hidden');
+                    }
+                } finally {
+                    btn && (btn.disabled = false);
+                }
+            }
+
+            async handleEmailSignup(e) {
+                e.preventDefault();
+                const nameEl = document.getElementById('signup-name');
+                const emailEl = document.getElementById('signup-email');
+                const passEl = document.getElementById('signup-password');
+                const errBox = document.getElementById('signup-error');
+                const okBox = document.getElementById('signup-success');
+                if (!emailEl || !passEl) return;
+
+                const name = nameEl ? nameEl.value.trim() : '';
+                const email = emailEl.value.trim();
+                const password = passEl.value;
+                errBox && (errBox.classList.add('hidden'), errBox.textContent = '');
+                okBox && (okBox.classList.add('hidden'), okBox.textContent = '');
+
+                const btn = document.getElementById('email-signup');
+                btn && (btn.disabled = true);
+                try {
+                    const cred = await firebase.auth().createUserWithEmailAndPassword(email, password);
+                    if (name) {
+                        await cred.user.updateProfile({ displayName: name });
+                    }
+                    okBox && (okBox.textContent = 'Account created! You are signed in.', okBox.classList.remove('hidden'));
+                    setTimeout(() => this.hideSignupModal(), 400);
+                } catch (error) {
+                    const msg = this.mapAuthError(error);
+                    if (errBox) {
+                        errBox.textContent = msg;
+                        errBox.classList.remove('hidden');
+                    }
+                } finally {
+                    btn && (btn.disabled = false);
+                }
+            }
+
+            async handleForgotPassword(e) {
+                e.preventDefault();
+                const emailEl = document.getElementById('forgot-email');
+                const okBox = document.getElementById('forgot-success');
+                const errBox = document.getElementById('forgot-error');
+                if (!emailEl) return;
+                const email = emailEl.value.trim();
+                errBox && (errBox.classList.add('hidden'), errBox.textContent = '');
+                okBox && (okBox.classList.add('hidden'), okBox.textContent = '');
+                const btn = document.getElementById('send-reset-email');
+                btn && (btn.disabled = true);
+                try {
+                    await firebase.auth().sendPasswordResetEmail(email);
+                    okBox && (okBox.textContent = 'Reset email sent. Please check your inbox.', okBox.classList.remove('hidden'));
+                    setTimeout(() => this.hideForgotPasswordModal(), 800);
+                } catch (error) {
+                    const msg = this.mapAuthError(error);
+                    if (errBox) {
+                        errBox.textContent = msg;
+                        errBox.classList.remove('hidden');
+                    }
+                } finally {
+                    btn && (btn.disabled = false);
+                }
+            }
+
+            togglePasswordVisibility(inputId, btnId) {
+                const input = document.getElementById(inputId);
+                const btn = document.getElementById(btnId);
+                if (!input || !btn) return;
+                input.type = input.type === 'password' ? 'text' : 'password';
+            }
+
+            showSignupModal() {
+                const modal = document.getElementById('signup-modal');
+                const login = document.getElementById('login-modal');
+                if (login) login.classList.add('hidden');
+                if (modal) modal.classList.remove('hidden');
+            }
+            hideSignupModal() {
+                const modal = document.getElementById('signup-modal');
+                if (modal) modal.classList.add('hidden');
+            }
+
+            showForgotPasswordModal() {
+                const modal = document.getElementById('forgot-password-modal');
+                const login = document.getElementById('login-modal');
+                if (login) login.classList.add('hidden');
+                if (modal) modal.classList.remove('hidden');
+            }
+            hideForgotPasswordModal() {
+                const modal = document.getElementById('forgot-password-modal');
+                if (modal) modal.classList.add('hidden');
+            }
+
+            mapAuthError(error) {
+                const code = error && error.code ? String(error.code) : '';
+                const map = {
+                    'auth/invalid-email': 'Please enter a valid email address.',
+                    'auth/user-disabled': 'This account has been disabled.',
+                    'auth/user-not-found': 'No account found with this email.',
+                    'auth/wrong-password': 'Incorrect password. Please try again.',
+                    'auth/email-already-in-use': 'An account already exists with this email.',
+                    'auth/weak-password': 'Password should be at least 6 characters.',
+                    'auth/too-many-requests': 'Too many attempts. Try again later.',
+                };
+                return map[code] || (error && error.message) || 'Something went wrong. Please try again.';
+            }
+
             // Update Auth UI
             updateAuthUI(user) {
                 const authButtons = document.getElementById('auth-buttons');
                 const userInfo = document.getElementById('user-info');
                 const userName = document.getElementById('user-name');
                 const userPhoto = document.getElementById('user-photo');
+
+                // Mobile
+                const authButtonsSm = document.getElementById('auth-buttons-sm');
+                const userInfoSm = document.getElementById('user-info-sm');
+                const userNameSm = document.getElementById('user-name-sm');
+                const userPhotoSm = document.getElementById('user-photo-sm');
 
                 if (user) {
                     // Hide login modal if user is signed in (covers redirect flow)
@@ -1754,9 +1940,18 @@
                     if (userPhoto) {
                         userPhoto.src = user.photoURL || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.displayName || user.email);
                     }
+
+                    // Mobile
+                    if (authButtonsSm) authButtonsSm.classList.add('hidden');
+                    if (userInfoSm) userInfoSm.classList.remove('hidden');
+                    if (userNameSm) userNameSm.textContent = user.displayName || user.email;
+                    if (userPhotoSm) userPhotoSm.src = user.photoURL || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.displayName || user.email);
                 } else {
                     if (authButtons) authButtons.classList.remove('hidden');
                     if (userInfo) userInfo.classList.add('hidden');
+                    // Mobile
+                    if (authButtonsSm) authButtonsSm.classList.remove('hidden');
+                    if (userInfoSm) userInfoSm.classList.add('hidden');
                 }
             }
 
@@ -1797,6 +1992,20 @@
                     
                     lastScrollY = currentScrollY;
                 });
+
+                // Mobile menu toggle
+                const toggleBtn = document.getElementById('mobile-menu-toggle');
+                const mobileMenu = document.getElementById('mobile-menu');
+                if (toggleBtn && mobileMenu) {
+                    const closeMenu = () => mobileMenu.classList.add('hidden');
+                    toggleBtn.addEventListener('click', () => {
+                        mobileMenu.classList.toggle('hidden');
+                        const expanded = toggleBtn.getAttribute('aria-expanded') === 'true';
+                        toggleBtn.setAttribute('aria-expanded', String(!expanded));
+                    });
+                    // Close on link click
+                    mobileMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', closeMenu));
+                }
             }
 
             // Show notification
