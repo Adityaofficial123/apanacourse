@@ -251,6 +251,36 @@
                 return;
             }
 
+            // Helper: render responsive embed markup for various providers
+            function renderVideoEmbed(url) {
+                // YouTube patterns
+                const ytIdMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([A-Za-z0-9_-]{6,})/);
+                // Google Drive patterns
+                const driveIdMatch = url.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([A-Za-z0-9_-]+)/);
+                const isMp4 = /\.(mp4|webm|ogg)(\?.*)?$/i.test(url);
+                const isCloudinary = /res\.cloudinary\.com\//i.test(url);
+                // Internet Archive patterns
+                const iaDetailsMatch = url.match(/archive\.org\/(?:details|embed)\/([^\/?#]+)/i);
+                // Sometimes users paste the item file URL like .../details/{id}/{file} or a generic page
+
+                if (ytIdMatch) {
+                    const vid = ytIdMatch[1];
+                    return `<div class="responsive-embed"><iframe src="https://www.youtube.com/embed/${vid}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`;
+                } else if (driveIdMatch) {
+                    const fid = driveIdMatch[1];
+                    return `<div class="responsive-embed"><iframe src="https://drive.google.com/file/d/${fid}/preview" allow="autoplay" allowfullscreen></iframe></div>`;
+                } else if (isMp4 || isCloudinary) {
+                    return `<div class="responsive-embed"><video src="${url}" controls preload="metadata"></video></div>`;
+                } else if (iaDetailsMatch) {
+                    const identifier = iaDetailsMatch[1];
+                    // Use Internet Archive's embed player for the item identifier
+                    const embedSrc = `https://archive.org/embed/${identifier}`;
+                    return `<div class="responsive-embed"><iframe src="${embedSrc}" allow="autoplay" allowfullscreen></iframe></div>`;
+                }
+                // Generic iframe fallback
+                return `<div class="responsive-embed"><iframe src="${url}" allowfullscreen></iframe></div>`;
+            }
+
             // ===== Approved Reviews Loader =====
             async function loadApprovedReviews(courseId) {
                 try {
@@ -389,9 +419,9 @@
 
                     // Set rating
                     const ratingElement = document.getElementById('course-rating');
-                    ratingElement.innerHTML = generateStarRating(course.rating || 4.5);
-                    document.getElementById('rating-text').textContent = `${course.rating || "4.5"} (${course.reviews || 100} reviews)`;
-                    document.getElementById('course-students').textContent = `${course.students || 100} students`;
+                    ratingElement.innerHTML = generateStarRating(course.rating || 0);
+                    document.getElementById('rating-text').textContent = `${course.rating || "0"} (${course.reviews || 0} reviews)`;
+                    document.getElementById('course-students').textContent = `${course.students || 0} students`;
 
                     // Set price
                     const priceElement = document.getElementById('course-price');
@@ -413,45 +443,16 @@
                         objectivesContainer.innerHTML = '<li class="text-gray-500">Course objectives will be updated soon.</li>';
                     }
 
-                    // Render Intro Video and Syllabus Document only (optional)
+                    // Render Intro Video(s) and Syllabus Document (optional)
                     const introEl = document.getElementById('intro-video-container');
                     const docEl = document.getElementById('syllabus-doc-container');
 
-                    // Intro video (from course.introVideoUrl)
-                    if (course.introVideoUrl) {
-                        const url = course.introVideoUrl.trim();
-                        // YouTube patterns
-                        const ytIdMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([A-Za-z0-9_-]{6,})/);
-                        // Google Drive patterns
-                        const driveIdMatch = url.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([A-Za-z0-9_-]+)/);
-                        const isMp4 = /\.(mp4|webm|ogg)(\?.*)?$/i.test(url);
-                        const isCloudinary = /res\.cloudinary\.com\//i.test(url);
-
-                        if (ytIdMatch) {
-                            const vid = ytIdMatch[1];
-                            introEl.innerHTML = `
-                                <div class="responsive-embed">
-                                    <iframe src="https://www.youtube.com/embed/${vid}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-                                </div>`;
-                        } else if (driveIdMatch) {
-                            const fid = driveIdMatch[1];
-                            introEl.innerHTML = `
-                                <div class="responsive-embed">
-                                    <iframe src="https://drive.google.com/file/d/${fid}/preview" allow="autoplay" allowfullscreen></iframe>
-                                </div>`;
-                        } else if (isMp4 || isCloudinary) {
-                            // Try HTML5 video player
-                            introEl.innerHTML = `
-                                <div class="responsive-embed">
-                                    <video src="${url}" controls preload="metadata"></video>
-                                </div>`;
-                        } else {
-                            // Generic iframe fallback
-                            introEl.innerHTML = `
-                                <div class="responsive-embed">
-                                    <iframe src="${url}" allowfullscreen></iframe>
-                                </div>`;
-                        }
+                    // Support up to two intro videos: introVideoUrl and introVideoUrl2
+                    const introUrls = [course.introVideoUrl, course.introVideoUrl2]
+                        .map(u => (u || '').trim())
+                        .filter(u => !!u);
+                    if (introUrls.length > 0) {
+                        introEl.innerHTML = introUrls.map(u => renderVideoEmbed(u)).join('');
                     } else {
                         introEl.innerHTML = '<div class="text-gray-500">No intro video added.</div>';
                     }
