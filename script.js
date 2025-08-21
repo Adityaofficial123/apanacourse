@@ -15,15 +15,58 @@ function updateAuthUI(user) {
   const authButtons = document.getElementById('auth-buttons');
   const userInfo = document.getElementById('user-info');
   const userName = document.getElementById('user-name');
+  const userPhoto = document.getElementById('user-photo');
+  // Mobile elements
+  const authButtonsSm = document.getElementById('auth-buttons-sm');
+  const userInfoSm = document.getElementById('user-info-sm');
+  const userNameSm = document.getElementById('user-name-sm');
+  const userPhotoSm = document.getElementById('user-photo-sm');
 
   if (user) {
-    if (authButtons) authButtons.classList.add('hidden');
-    if (userInfo) userInfo.classList.remove('hidden');
+    if (authButtons) { authButtons.classList.add('hidden'); authButtons.classList.remove('flex'); }
+    if (userInfo) { userInfo.classList.remove('hidden'); userInfo.classList.add('flex'); }
     if (userName) userName.textContent = user.displayName || user.email;
+    if (userPhoto) {
+      if (user.photoURL) {
+        userPhoto.src = user.photoURL;
+        userPhoto.alt = user.displayName || user.email || 'User photo';
+        userPhoto.classList.remove('hidden');
+      } else {
+        userPhoto.classList.add('hidden');
+      }
+    }
+    // Mobile
+    if (authButtonsSm) { authButtonsSm.classList.add('hidden'); authButtonsSm.classList.remove('flex'); }
+    if (userInfoSm) { userInfoSm.classList.remove('hidden'); userInfoSm.classList.add('flex'); }
+    if (userNameSm) userNameSm.textContent = user.displayName || user.email;
+    if (userPhotoSm) {
+      if (user.photoURL) {
+        userPhotoSm.src = user.photoURL;
+        userPhotoSm.alt = user.displayName || user.email || 'User photo';
+        userPhotoSm.classList.remove('hidden');
+      } else {
+        userPhotoSm.classList.add('hidden');
+      }
+    }
     // currentUser is managed by firebase.js
   } else {
-    if (authButtons) authButtons.classList.remove('hidden');
-    if (userInfo) userInfo.classList.add('hidden');
+    if (authButtons) { authButtons.classList.remove('hidden'); authButtons.classList.add('flex'); }
+    if (userInfo) { userInfo.classList.add('hidden'); userInfo.classList.remove('flex'); }
+    if (userName) userName.textContent = '';
+    if (userPhoto) {
+      userPhoto.src = '';
+      userPhoto.alt = '';
+      userPhoto.classList.add('hidden');
+    }
+    // Mobile
+    if (authButtonsSm) { authButtonsSm.classList.remove('hidden'); authButtonsSm.classList.add('flex'); }
+    if (userInfoSm) { userInfoSm.classList.add('hidden'); userInfoSm.classList.remove('flex'); }
+    if (userNameSm) userNameSm.textContent = '';
+    if (userPhotoSm) {
+      userPhotoSm.src = '';
+      userPhotoSm.alt = '';
+      userPhotoSm.classList.add('hidden');
+    }
   }
 }
 
@@ -43,20 +86,29 @@ function hideLoginModal() {
   }
 }
 
-// Google login (redirect – no popup)
+// Google login (delegates to firebase.js global which handles popup/redirect)
 async function signInWithGoogle() {
   try {
-    await firebase.auth().signInWithRedirect(googleProvider);
+    if (typeof window.signInWithGoogle === 'function') {
+      await window.signInWithGoogle();
+    } else {
+      // Fallback to redirect if globals missing
+      await firebase.auth().signInWithRedirect(googleProvider);
+    }
   } catch (error) {
-    console.error('Error starting Google sign-in redirect:', error);
+    console.error('Error starting Google sign-in:', error);
     alert('Error starting Google sign-in. Please try again.');
   }
 }
 
-// Logout
+// Logout (delegate to firebase.js)
 async function signOut() {
   try {
-    await firebase.auth().signOut();
+    if (typeof window.signOut === 'function') {
+      await window.signOut();
+    } else {
+      await firebase.auth().signOut();
+    }
     console.log('User signed out');
     // Redirect to home page after logout
     window.location.href = 'index.html';
@@ -68,12 +120,11 @@ async function signOut() {
 // Email/Password Login
 async function signInWithEmail(email, password) {
   try {
-    console.log('Attempting to sign in with email:', email);
+    if (typeof window.signInWithEmail === 'function') {
+      return await window.signInWithEmail(email, password);
+    }
     const auth = firebase.auth();
-    console.log('Firebase auth instance:', auth ? 'Available' : 'Not available');
-    
     const userCredential = await auth.signInWithEmailAndPassword(email, password);
-    console.log('User signed in successfully:', userCredential.user.email);
     return userCredential.user;
   } catch (error) {
     console.error('Error details during sign in:', {
@@ -89,6 +140,9 @@ async function signInWithEmail(email, password) {
 // Send password reset email
 async function sendPasswordResetEmail(email) {
   try {
+    if (typeof window.sendPasswordResetEmail === 'function') {
+      return await window.sendPasswordResetEmail(email);
+    }
     await firebase.auth().sendPasswordResetEmail(email);
     return true;
   } catch (error) {
@@ -351,6 +405,11 @@ document.addEventListener('DOMContentLoaded', function() {
   if (googleLoginBtn) {
     googleLoginBtn.addEventListener('click', signInWithGoogle);
   }
+  // Mobile navbar login button
+  const loginBtnSm = document.getElementById('login-btn-sm');
+  if (loginBtnSm) {
+    loginBtnSm.addEventListener('click', signInWithGoogle);
+  }
   
   // Close modal button
   const closeModalBtn = document.getElementById('close-modal');
@@ -362,6 +421,11 @@ document.addEventListener('DOMContentLoaded', function() {
   const logoutBtn = document.getElementById('logout-btn');
   if (logoutBtn) {
     logoutBtn.addEventListener('click', signOut);
+  }
+  // Mobile logout button
+  const logoutBtnSm = document.getElementById('logout-btn-sm');
+  if (logoutBtnSm) {
+    logoutBtnSm.addEventListener('click', signOut);
   }
   
   // Close modal when clicking outside
@@ -394,6 +458,12 @@ function waitForFirebaseAndSetupAuth() {
       // Handle redirect result once after returning from Google
       handleRedirectResult().finally(() => {
         setupAuthListener();
+        // Immediately sync UI if current user is already available
+        try {
+          if (typeof window.getCurrentUser === 'function') {
+            updateAuthUI(window.getCurrentUser());
+          }
+        } catch (e) {}
       });
     }
   }, 100);
@@ -419,18 +489,27 @@ async function handleRedirectResult() {
 
 // Setup authentication state listener
 function setupAuthListener() {
-  firebase.auth().onAuthStateChanged(function(user) {
-    console.log('Auth state changed in script.js:', user ? user.email : 'No user');
-    currentUser = user;
-    window.currentUser = user;
-    updateAuthUI(user);
-    
-    // Load featured courses on homepage
-    const currentPage = window.location.pathname;
-    if (currentPage.includes('index.html') || currentPage === '/' || currentPage === '') {
-      loadFeaturedCourses();
-    }
-  });
+  if (typeof window.onAuthStateChanged === 'function') {
+    window.onAuthStateChanged(function(user) {
+      console.log('Auth state changed in script.js:', user ? user.email : 'No user');
+      updateAuthUI(user);
+      // Load featured courses on homepage
+      const currentPage = window.location.pathname;
+      if (currentPage.includes('index.html') || currentPage === '/' || currentPage === '') {
+        loadFeaturedCourses();
+      }
+    });
+  } else {
+    // Fallback directly to Firebase listener
+    firebase.auth().onAuthStateChanged(function(user) {
+      console.log('Auth state changed in script.js (fallback):', user ? user.email : 'No user');
+      updateAuthUI(user);
+      const currentPage = window.location.pathname;
+      if (currentPage.includes('index.html') || currentPage === '/' || currentPage === '') {
+        loadFeaturedCourses();
+      }
+    });
+  }
 }
 
 // Load featured courses for homepage
