@@ -82,6 +82,47 @@ body {
   }
 }
 
+/* ===== Responsive PDF Embed ===== */
+.pdf-embed-wrapper {
+  width: 100%;
+  height: 80vh;
+  background: #f9fafb;
+}
+.pdf-frame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* ===== Mobile improvements ===== */
+@media (max-width: 768px) {
+  .pdf-embed-wrapper {
+    height: calc(100vh - 180px); /* leave space for header/buttons */
+  }
+
+  /* Make tables horizontally scrollable on small screens */
+  .responsive-table,
+  .table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .responsive-table table,
+  .table-responsive table {
+    min-width: 600px; /* prevent columns from squishing */
+  }
+
+  /* Ensure iframes and images never overflow */
+  iframe, img, video {
+    max-width: 100%;
+  }
+
+  /* Utility: stack action buttons */
+  .btn-stack-sm > * {
+    width: 100%;
+  }
+}
+
 @keyframes slideInLeft {
   from {
     opacity: 0;
