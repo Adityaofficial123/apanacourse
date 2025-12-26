@@ -731,196 +731,196 @@ class EnhancedInteractions {
         this.setupFloatingElements();
     }
 
-    // Custom Cursor
-    createCustomCursor() {
-        const cursor = document.createElement('div');
-        cursor.className = 'cursor';
-        document.body.appendChild(cursor);
+    // // Custom Cursor
+    // createCustomCursor() {
+    //     const cursor = document.createElement('div');
+    //     cursor.className = 'cursor';
+    //     document.body.appendChild(cursor);
 
-        const cursorFollower = document.createElement('div');
-        cursorFollower.className = 'cursor-follower';
-        document.body.appendChild(cursorFollower);
+    //     const cursorFollower = document.createElement('div');
+    //     cursorFollower.className = 'cursor-follower';
+    //     document.body.appendChild(cursorFollower);
 
-        let mouseX = 0, mouseY = 0;
-        let cursorX = 0, cursorY = 0;
-        let followerX = 0, followerY = 0;
+    //     let mouseX = 0, mouseY = 0;
+    //     let cursorX = 0, cursorY = 0;
+    //     let followerX = 0, followerY = 0;
 
-        document.addEventListener('mousemove', (e) => {
-            mouseX = e.clientX;
-            mouseY = e.clientY;
-        });
+    //     document.addEventListener('mousemove', (e) => {
+    //         mouseX = e.clientX;
+    //         mouseY = e.clientY;
+    //     });
 
-        const animateCursor = () => {
-            const distX = mouseX - cursorX;
-            const distY = mouseY - cursorY;
+    //     const animateCursor = () => {
+    //         const distX = mouseX - cursorX;
+    //         const distY = mouseY - cursorY;
             
-            cursorX = cursorX + (distX * 0.3);
-            cursorY = cursorY + (distY * 0.3);
+    //         cursorX = cursorX + (distX * 0.3);
+    //         cursorY = cursorY + (distY * 0.3);
 
-            const distFollowerX = mouseX - followerX;
-            const distFollowerY = mouseY - followerY;
+    //         const distFollowerX = mouseX - followerX;
+    //         const distFollowerY = mouseY - followerY;
             
-            followerX = followerX + (distFollowerX * 0.1);
-            followerY = followerY + (distFollowerY * 0.1);
+    //         followerX = followerX + (distFollowerX * 0.1);
+    //         followerY = followerY + (distFollowerY * 0.1);
 
-            cursor.style.left = cursorX + 'px';
-            cursor.style.top = cursorY + 'px';
-            cursorFollower.style.left = followerX + 'px';
-            cursorFollower.style.top = followerY + 'px';
+    //         cursor.style.left = cursorX + 'px';
+    //         cursor.style.top = cursorY + 'px';
+    //         cursorFollower.style.left = followerX + 'px';
+    //         cursorFollower.style.top = followerY + 'px';
 
-            requestAnimationFrame(animateCursor);
-        };
+    //         requestAnimationFrame(animateCursor);
+    //     };
 
-        animateCursor();
+    //     animateCursor();
 
-        // Cursor interactions
-        const interactiveElements = document.querySelectorAll('a, button, .interactive, .card, .course-card');
+    //     // Cursor interactions
+    //     const interactiveElements = document.querySelectorAll('a, button, .interactive, .card, .course-card');
         
-        interactiveElements.forEach(el => {
-            el.addEventListener('mouseenter', () => {
-                cursor.style.transform = 'scale(1.5)';
-                cursorFollower.style.transform = 'scale(1.5)';
-                cursorFollower.style.border = '2px solid rgba(59, 130, 246, 0.6)';
-            });
+    //     interactiveElements.forEach(el => {
+    //         el.addEventListener('mouseenter', () => {
+    //             cursor.style.transform = 'scale(1.5)';
+    //             cursorFollower.style.transform = 'scale(1.5)';
+    //             cursorFollower.style.border = '2px solid rgba(59, 130, 246, 0.6)';
+    //         });
 
-            el.addEventListener('mouseleave', () => {
-                cursor.style.transform = 'scale(1)';
-                cursorFollower.style.transform = 'scale(1)';
-                cursorFollower.style.border = '2px solid rgba(59, 130, 246, 0.3)';
-            });
-        });
+    //         el.addEventListener('mouseleave', () => {
+    //             cursor.style.transform = 'scale(1)';
+    //             cursorFollower.style.transform = 'scale(1)';
+    //             cursorFollower.style.border = '2px solid rgba(59, 130, 246, 0.3)';
+    //         });
+    //     });
 
-        // Hide cursor on touch devices
-        document.addEventListener('touchstart', () => {
-            cursor.style.display = 'none';
-            cursorFollower.style.display = 'none';
-        });
-    }
+    //     // Hide cursor on touch devices
+    //     document.addEventListener('touchstart', () => {
+    //         cursor.style.display = 'none';
+    //         cursorFollower.style.display = 'none';
+    //     });
+    // }
 
-    // Scroll Animations
-    setupScrollAnimations() {
-        const observerOptions = {
-            threshold: 0.1,
-            rootMargin: '0px 0px -50px 0px'
-        };
+    // // Scroll Animations
+    // setupScrollAnimations() {
+    //     const observerOptions = {
+    //         threshold: 0.1,
+    //         rootMargin: '0px 0px -50px 0px'
+    //     };
 
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('revealed');
-                }
-            });
-        }, observerOptions);
+    //     const observer = new IntersectionObserver((entries) => {
+    //         entries.forEach(entry => {
+    //             if (entry.isIntersecting) {
+    //                 entry.target.classList.add('revealed');
+    //             }
+    //         });
+    //     }, observerOptions);
 
-        // Add scroll-reveal class to elements
-        const animateElements = document.querySelectorAll(
-            '.card, .course-card, .feature-card, .stats-card, h1, h2, h3, .btn, .form-input'
-        );
+    //     // Add scroll-reveal class to elements
+    //     const animateElements = document.querySelectorAll(
+    //         '.card, .course-card, .feature-card, .stats-card, h1, h2, h3, .btn, .form-input'
+    //     );
 
-        animateElements.forEach((el, index) => {
-            el.classList.add('scroll-reveal');
-            el.style.transitionDelay = `${index * 0.1}s`;
-            observer.observe(el);
-        });
+    //     animateElements.forEach((el, index) => {
+    //         el.classList.add('scroll-reveal');
+    //         el.style.transitionDelay = `${index * 0.1}s`;
+    //         observer.observe(el);
+    //     });
 
-        // Navbar scroll effect
-        let lastScrollY = window.scrollY;
-        const navbar = document.querySelector('nav');
+    //     // Navbar scroll effect
+    //     let lastScrollY = window.scrollY;
+    //     const navbar = document.querySelector('nav');
 
-        window.addEventListener('scroll', () => {
-            const currentScrollY = window.scrollY;
+    //     window.addEventListener('scroll', () => {
+    //         const currentScrollY = window.scrollY;
             
-            if (currentScrollY > 100) {
-                navbar.classList.add('scrolled');
-            } else {
-                navbar.classList.remove('scrolled');
-            }
+    //         if (currentScrollY > 100) {
+    //             navbar.classList.add('scrolled');
+    //         } else {
+    //             navbar.classList.remove('scrolled');
+    //         }
 
-            if (currentScrollY > lastScrollY && currentScrollY > 200) {
-                navbar.style.transform = 'translateY(-100%)';
-            } else {
-                navbar.style.transform = 'translateY(0)';
-            }
+    //         if (currentScrollY > lastScrollY && currentScrollY > 200) {
+    //             navbar.style.transform = 'translateY(-100%)';
+    //         } else {
+    //             navbar.style.transform = 'translateY(0)';
+    //         }
 
-            lastScrollY = currentScrollY;
-        });
-    }
+    //         lastScrollY = currentScrollY;
+    //     });
+    // }
 
-    // Magnetic Button Effects
-    setupMagneticButtons() {
-        const magneticElements = document.querySelectorAll('.btn, button, .magnetic');
+    // // Magnetic Button Effects
+    // setupMagneticButtons() {
+    //     const magneticElements = document.querySelectorAll('.btn, button, .magnetic');
 
-        magneticElements.forEach(element => {
-            element.addEventListener('mousemove', (e) => {
-                const rect = element.getBoundingClientRect();
-                const x = e.clientX - rect.left - rect.width / 2;
-                const y = e.clientY - rect.top - rect.height / 2;
+    //     magneticElements.forEach(element => {
+    //         element.addEventListener('mousemove', (e) => {
+    //             const rect = element.getBoundingClientRect();
+    //             const x = e.clientX - rect.left - rect.width / 2;
+    //             const y = e.clientY - rect.top - rect.height / 2;
                 
-                const intensity = 0.3;
-                element.style.transform = `translate(${x * intensity}px, ${y * intensity}px)`;
-            });
+    //             const intensity = 0.3;
+    //             element.style.transform = `translate(${x * intensity}px, ${y * intensity}px)`;
+    //         });
 
-            element.addEventListener('mouseleave', () => {
-                element.style.transform = 'translate(0, 0)';
-            });
-        });
-    }
+    //         element.addEventListener('mouseleave', () => {
+    //             element.style.transform = 'translate(0, 0)';
+    //         });
+    //     });
+    // }
 
-    // Parallax Effects
-    setupParallaxEffects() {
-        const parallaxElements = document.querySelectorAll('.parallax-bg');
+    // // Parallax Effects
+    // setupParallaxEffects() {
+    //     const parallaxElements = document.querySelectorAll('.parallax-bg');
         
-        window.addEventListener('scroll', () => {
-            const scrolled = window.pageYOffset;
+    //     window.addEventListener('scroll', () => {
+    //         const scrolled = window.pageYOffset;
             
-            parallaxElements.forEach(element => {
-                const rate = scrolled * -0.5;
-                element.style.transform = `translate3d(0, ${rate}px, 0)`;
-            });
-        });
+    //         parallaxElements.forEach(element => {
+    //             const rate = scrolled * -0.5;
+    //             element.style.transform = `translate3d(0, ${rate}px, 0)`;
+    //         });
+    //     });
 
-        // Floating elements
-        const floatingElements = document.querySelectorAll('.animate-float');
-        floatingElements.forEach((el, index) => {
-            el.style.animationDelay = `${index * 0.5}s`;
-        });
-    }
+    //     // Floating elements
+    //     const floatingElements = document.querySelectorAll('.animate-float');
+    //     floatingElements.forEach((el, index) => {
+    //         el.style.animationDelay = `${index * 0.5}s`;
+    //     });
+    // }
 
-    // Enhanced Card Hover Effects
-    setupCardHoverEffects() {
-        const cards = document.querySelectorAll('.card, .course-card, .feature-card');
+    // // Enhanced Card Hover Effects
+    // setupCardHoverEffects() {
+    //     const cards = document.querySelectorAll('.card, .course-card, .feature-card');
 
-        cards.forEach(card => {
-            card.addEventListener('mousemove', (e) => {
-                const rect = card.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
+    //     cards.forEach(card => {
+    //         card.addEventListener('mousemove', (e) => {
+    //             const rect = card.getBoundingClientRect();
+    //             const x = e.clientX - rect.left;
+    //             const y = e.clientY - rect.top;
                 
-                const centerX = rect.width / 2;
-                const centerY = rect.height / 2;
+    //             const centerX = rect.width / 2;
+    //             const centerY = rect.height / 2;
                 
-                const rotateX = (y - centerY) / 10;
-                const rotateY = (centerX - x) / 10;
+    //             const rotateX = (y - centerY) / 10;
+    //             const rotateY = (centerX - x) / 10;
                 
-                card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateZ(20px)`;
+    //             card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateZ(20px)`;
                 
-                // Create light effect
-                const lightX = (x / rect.width) * 100;
-                const lightY = (y / rect.height) * 100;
-                card.style.background = `
-                    radial-gradient(circle at ${lightX}% ${lightY}%, 
-                    rgba(59, 130, 246, 0.1) 0%, 
-                    transparent 50%), 
-                    rgba(255, 255, 255, 0.9)
-                `;
-            });
+    //             // Create light effect
+    //             const lightX = (x / rect.width) * 100;
+    //             const lightY = (y / rect.height) * 100;
+    //             card.style.background = `
+    //                 radial-gradient(circle at ${lightX}% ${lightY}%, 
+    //                 rgba(59, 130, 246, 0.1) 0%, 
+    //                 transparent 50%), 
+    //                 rgba(255, 255, 255, 0.9)
+    //             `;
+    //         });
 
-            card.addEventListener('mouseleave', () => {
-                card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) translateZ(0)';
-                card.style.background = '';
-            });
-        });
-    }
+    //         card.addEventListener('mouseleave', () => {
+    //             card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) translateZ(0)';
+    //             card.style.background = '';
+    //         });
+    //     });
+    // }
 
     // Navigation Effects
     setupNavigationEffects() {
