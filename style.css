@@ -738,3 +738,20 @@ html {
     border: 1px solid #e5e7eb !important;
   }
 }
+
+
+
+/* Force modal text to black for visibility */
+.modal-content, .modal-content label, .modal-content input, .modal-content span, .modal-content p, .modal-content a, .modal-content h1, .modal-content h2, .modal-content h3, .modal-content h4, .modal-content h5, .modal-content h6 {
+  color: #111 !important;
+}
+
+/* Ensure modal text stays black on hover/focus/active */
+.modal-content *,
+.modal-content *:hover,
+.modal-content *:focus,
+.modal-content *:active {
+  color: #000 !important;
+  text-shadow: none !important;
+  -webkit-text-fill-color: #000 !important;
+}
