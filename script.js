@@ -113,26 +113,23 @@ function hideLoginModal() {
 // Google login (delegates to firebase.js global which handles popup/redirect)
 async function signInWithGoogle() {
   try {
-    if (typeof window.signInWithGoogle === "function") {
-      await window.signInWithGoogle();
+    // Use Firebase Auth Google provider
+    if (window.firebase && window.firebase.auth) {
+      const provider = new window.firebase.auth.GoogleAuthProvider();
+      await window.firebase.auth().signInWithPopup(provider);
     } else {
-      // Fallback to redirect if globals missing
-      await firebase.auth().signInWithRedirect(googleProvider);
+      throw new Error('Firebase Auth is not initialized');
     }
   } catch (error) {
-    console.error("Error starting Google sign-in:", error);
-    alert("Error starting Google sign-in. Please try again.");
+    console.error('Error starting Google sign-in:', error);
+    alert('Error starting Google sign-in. Please try again.');
   }
 }
 
 // Logout (delegate to firebase.js)
 async function signOut() {
   try {
-    if (typeof window.signOut === "function") {
-      await window.signOut();
-    } else {
-      await firebase.auth().signOut();
-    }
+    await firebase.auth().signOut();
     console.log("User signed out");
     // Redirect to home page after logout
     window.location.href = "index.html";
@@ -837,6 +834,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
 // Enhanced Interactive JavaScript for SmartLearn
 class EnhancedInteractions {
+    // Add a stub for createCustomCursor to prevent errors if not implemented
+    createCustomCursor() {
+      // No-op: Prevents error if not implemented
+    }
   constructor() {
     this.init();
   }
